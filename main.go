@@ -20,8 +20,7 @@ func main(){
 		fmt.Println("starting crawl")
 		cfg.crawlPage(argsWithProg[1])
 		cfg.wg.Wait()
-		fmt.Println(cfg.pages)
+		printReport(cfg.pages,cfg.baseURL.String())
 		return
 	}
-
 }
