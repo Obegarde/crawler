@@ -9,13 +9,12 @@ import (
 )
 
 type config struct {
-	pages              map[string]int
+	pages              map[string]bool
 	baseURL            *url.URL
 	mu                 *sync.Mutex
 	concurrencyControl chan struct{}
 	wg                 *sync.WaitGroup
 	maxPages           int
-	checkedPages       int
 }
 
 func configure(rawURL, maxConcurrencyControl, maxPagesString string) (*config, error) {
@@ -35,9 +34,9 @@ func configure(rawURL, maxConcurrencyControl, maxPagesString string) (*config, e
 	if err != nil {
 		return &config{}, fmt.Errorf("failed to create output directory: %v", err)
 	}
-	loadedPages, err := ReadPagesMapFromFile("out/" + parsedURL.Host + "pagesMap")
+	loadedPages, err := ReadPagesMapFromFile("out/" + parsedURL.Host + "/pagesMap")
 	if err != nil {
-		fmt.Println("Failed to load pagesMap using cleanMap")
+		fmt.Printf("Failed to load pagesMap using cleanMap: %v\n", err)
 	}
 
 	newConfig := config{
@@ -47,7 +46,6 @@ func configure(rawURL, maxConcurrencyControl, maxPagesString string) (*config, e
 		concurrencyControl: make(chan struct{}, maxConcurrency),
 		wg:                 &sync.WaitGroup{},
 		maxPages:           maxPagesInt,
-		checkedPages:       0,
 	}
 	return &newConfig, nil
 }

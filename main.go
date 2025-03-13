@@ -26,11 +26,24 @@ func main() {
 			fmt.Printf("Failed to configure crawler:%v\n", err)
 			os.Exit(1)
 		}
+		normalizedBase, err := normalizeURL(cfg.baseURL.String())
+		if err != nil {
+			fmt.Printf("failed to format baseURL: %v", err)
+			return
+		}
+		cfg.addNewPage(normalizedBase)
 		fmt.Println("starting crawl")
-		cfg.crawlPage(argsWithProg[1])
-		cfg.wg.Wait()
+		checkedPages := 0
+		for checkedPages < cfg.maxPages {
+			links, err := cfg.generateLinkList()
+			if err != nil {
+				fmt.Printf("failed to generateLinkList: %v\n", err)
+				break
+			}
+			checkedPages += cfg.workThroughLinks(links)
+			cfg.wg.Wait()
+		}
 		printReport(cfg.pages, cfg.baseURL.String())
 		cfg.WritePagesMapToFile("pagesMap")
-		return
 	}
 }

@@ -40,9 +40,10 @@ func (cfg *config) WritePagesMapToFile(pagesName string) error {
 		return fmt.Errorf("failed to create or truncate pagesMap: %v", err)
 	}
 	defer file.Close()
-	_, err = file.Write(buffer.Bytes())
+	wBytes, err := file.Write(buffer.Bytes())
 	if err != nil {
 		return fmt.Errorf("failed to write buffer to file: %v", err)
 	}
+	fmt.Printf("Succesfully saved pagesMap, %v bytes written to pagesMap\n", wBytes)
 	return nil
 }
