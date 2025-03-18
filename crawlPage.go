@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 )
 
 func (cfg *config) crawlPage(currentURL string) {
@@ -12,25 +11,17 @@ func (cfg *config) crawlPage(currentURL string) {
 		fmt.Printf("Error getting page: %v\n", err)
 		return
 	}
-	// fmt.Printf("Getting HTML From :%v\n", currentURL)
-	err = cfg.WriteHTMLToFile(pageHTML, currentURL)
+	err = cfg.CheckAndSaveHTML(pageHTML, currentURL)
 	if err != nil {
-		fmt.Printf("Failed to save HTML: %v\n", err)
-		panic(err)
+		fmt.Printf("failed to check and save html:%v\n", err)
 	}
-
 	newLinks, err := getURLsFromHTML(pageHTML, currentURL)
 	if err != nil {
 		fmt.Printf("Error extracting URLs: %v\n", err)
 		return
 	}
-	for _, newLink := range newLinks {
-		normLink, err := normalizeURL(newLink)
-		if err != nil {
-			fmt.Printf("Failed to normalizeURL: %v", err)
-			continue
-		}
-		cfg.addNewPage(normLink)
+	for urlString, linkInfo := range newLinks {
+		cfg.addNewPage(urlString, linkInfo)
 	}
 }
 
@@ -59,7 +50,7 @@ func (cfg *config) generateLinkList() ([]string, error) {
 	defer cfg.mu.Unlock()
 	// fmt.Println(cfg.pages)
 	for key, val := range cfg.pages {
-		if !val {
+		if !val.Checked {
 			links = append(links, key)
 		}
 	}
@@ -72,18 +63,19 @@ func (cfg *config) generateLinkList() ([]string, error) {
 func (cfg *config) setPageChecked(normalizedURL string) {
 	cfg.mu.Lock()
 	defer cfg.mu.Unlock()
-	cfg.pages[normalizedURL] = true
+	if entry, ok := cfg.pages[normalizedURL]; ok {
+		entry.Checked = true
+		cfg.pages[normalizedURL] = entry
+	}
 }
 
-func (cfg *config) addNewPage(normalizedURL string) {
-	if !strings.Contains(normalizedURL, cfg.baseURL.Host) {
-		return
-	}
+func (cfg *config) addNewPage(normalizedURL string, crawlInfo CrawlInfo) {
 	cfg.mu.Lock()
 	defer cfg.mu.Unlock()
+	// If url exists already just return
 	_, ok := cfg.pages[normalizedURL]
 	if ok {
 		return
 	}
-	cfg.pages[normalizedURL] = false
+	cfg.pages[normalizedURL] = crawlInfo
 }

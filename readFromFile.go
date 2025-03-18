@@ -7,8 +7,8 @@ import (
 	"os"
 )
 
-func ReadPagesMapFromFile(pagesPath string) (map[string]bool, error) {
-	pagesMap := make(map[string]bool)
+func ReadPagesMapFromFile(pagesPath string) (map[string]CrawlInfo, error) {
+	pagesMap := make(map[string]CrawlInfo)
 	file, err := os.Open(pagesPath)
 	if err != nil {
 		return pagesMap, err

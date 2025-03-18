@@ -31,7 +31,12 @@ func main() {
 			fmt.Printf("failed to format baseURL: %v", err)
 			return
 		}
-		cfg.addNewPage(normalizedBase)
+		baseURLStruct := CrawlInfo{
+			Url:            cfg.baseURL,
+			Checked:        false,
+			ShouldDownload: false,
+		}
+		cfg.addNewPage(normalizedBase, baseURLStruct)
 		fmt.Println("starting crawl")
 		checkedPages := 0
 		for checkedPages < cfg.maxPages {
@@ -44,6 +49,9 @@ func main() {
 			cfg.wg.Wait()
 		}
 		printReport(cfg.pages, cfg.baseURL.String())
-		cfg.WritePagesMapToFile("pagesMap")
+		err = cfg.WritePagesMapToFile("pagesMap")
+		if err != nil {
+			fmt.Printf("failed to write map %v\n", err)
+		}
 	}
 }

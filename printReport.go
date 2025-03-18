@@ -9,12 +9,12 @@ type page struct {
 	count int
 }
 
-func printReport(pages map[string]bool, baseURL string) {
+func printReport(pages map[string]CrawlInfo, baseURL string) {
 	uniqueLinks := 0
 	checkedLinks := 0
 	for _, val := range pages {
 		uniqueLinks += 1
-		if val {
+		if val.Checked {
 			checkedLinks += 1
 		}
 	}

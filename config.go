@@ -8,8 +8,14 @@ import (
 	"sync"
 )
 
+type CrawlInfo struct {
+	Url            *url.URL
+	Checked        bool
+	ShouldDownload bool
+}
+
 type config struct {
-	pages              map[string]bool
+	pages              map[string]CrawlInfo
 	baseURL            *url.URL
 	mu                 *sync.Mutex
 	concurrencyControl chan struct{}
