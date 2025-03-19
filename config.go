@@ -9,9 +9,8 @@ import (
 )
 
 type CrawlInfo struct {
-	Url            *url.URL
-	Checked        bool
-	ShouldDownload bool
+	Url     *url.URL
+	Checked bool
 }
 
 type config struct {

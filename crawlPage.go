@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"strings"
 )
 
 func (cfg *config) crawlPage(currentURL string) {
@@ -11,35 +13,43 @@ func (cfg *config) crawlPage(currentURL string) {
 		fmt.Printf("Error getting page: %v\n", err)
 		return
 	}
-	err = cfg.CheckAndSaveHTML(pageHTML, currentURL)
-	if err != nil {
-		fmt.Printf("failed to check and save html:%v\n", err)
-	}
-	newLinks, err := getURLsFromHTML(pageHTML, currentURL)
-	if err != nil {
-		fmt.Printf("Error extracting URLs: %v\n", err)
-		return
-	}
-	for urlString, linkInfo := range newLinks {
-		cfg.addNewPage(urlString, linkInfo)
+	// If its on a different site just download the page and set it checked. This allows me to download jobs posted on the companies site without crawling their page
+	if !strings.Contains(currentURL, cfg.baseURL.Host) {
+		cfg.WriteHTMLToFile(pageHTML, currentURL)
+	} else {
+		cfg.WriteHTMLToFile(pageHTML, currentURL)
+		newLinks, err := getURLsFromHTML(pageHTML, currentURL)
+		if err != nil {
+			fmt.Printf("Error extracting URLs: %v\n", err)
+			return
+		}
+		for urlString, linkInfo := range newLinks {
+			cfg.addNewPage(urlString, linkInfo)
+		}
 	}
 }
 
-func (cfg *config) workThroughLinks(links []string) int {
+func (cfg *config) workThroughLinks(links []string, ctx context.Context) int {
 	linksWorkedThrough := 0
 	for _, link := range links {
 		linksWorkedThrough += 1
 		if linksWorkedThrough > cfg.maxPages {
 			break
 		}
-		cfg.setPageChecked(link)
 		cfg.wg.Add(1)
-		go func() {
-			defer cfg.wg.Done()
-			defer func() { <-cfg.concurrencyControl }()
-			cfg.concurrencyControl <- struct{}{}
-			cfg.crawlPage(link)
-		}()
+		go func(ctx context.Context) {
+			select {
+			case <-ctx.Done():
+				fmt.Println("Cancelling Crawl")
+				return
+			default:
+				defer cfg.wg.Done()
+				defer func() { <-cfg.concurrencyControl }()
+				cfg.concurrencyControl <- struct{}{}
+				cfg.crawlPage(link)
+				cfg.setPageChecked(link)
+			}
+		}(ctx)
 	}
 	return linksWorkedThrough
 }

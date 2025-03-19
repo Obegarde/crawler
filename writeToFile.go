@@ -8,18 +8,6 @@ import (
 	"os"
 )
 
-func (cfg *config) CheckAndSaveHTML(htmlString, normalizedURL string) error {
-	cfg.mu.Lock()
-	defer cfg.mu.Unlock()
-	if cfg.pages[normalizedURL].ShouldDownload {
-		err := cfg.WriteHTMLToFile(htmlString, normalizedURL)
-		if err != nil {
-			return fmt.Errorf("failed to save html to disk: %v", err)
-		}
-	}
-	return nil
-}
-
 func (cfg *config) WriteHTMLToFile(htmlString, normalizedURL string) error {
 	h := sha256.New()
 	h.Write([]byte(normalizedURL))

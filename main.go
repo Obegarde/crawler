@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -32,22 +35,30 @@ func main() {
 			return
 		}
 		baseURLStruct := CrawlInfo{
-			Url:            cfg.baseURL,
-			Checked:        false,
-			ShouldDownload: false,
+			Url:     cfg.baseURL,
+			Checked: false,
 		}
 		cfg.addNewPage(normalizedBase, baseURLStruct)
 		fmt.Println("starting crawl")
-		checkedPages := 0
-		for checkedPages < cfg.maxPages {
-			links, err := cfg.generateLinkList()
-			if err != nil {
-				fmt.Printf("failed to generateLinkList: %v\n", err)
-				break
+		ctx, cancel := context.WithCancel(context.Background())
+		go func(ctx context.Context) {
+			checkedPages := 0
+			for checkedPages < cfg.maxPages {
+				links, err := cfg.generateLinkList()
+				if err != nil {
+					fmt.Printf("failed to generateLinkList: %v\n", err)
+					break
+				}
+				checkedPages += cfg.workThroughLinks(links, ctx)
+				cfg.wg.Wait()
+				fmt.Println("Crawl finished: Press Ctrl + c to stop program")
 			}
-			checkedPages += cfg.workThroughLinks(links)
-			cfg.wg.Wait()
-		}
+		}(ctx)
+		signalCh := make(chan os.Signal, 1)
+		signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
+		<-signalCh
+		fmt.Println("stopping Crawler")
+		cancel()
 		printReport(cfg.pages, cfg.baseURL.String())
 		err = cfg.WritePagesMapToFile("pagesMap")
 		if err != nil {

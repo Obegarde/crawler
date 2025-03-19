@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/url"
-	"slices"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -24,14 +23,6 @@ func getURLsFromHTML(htmlBody, rawBaseURL string) (map[string]CrawlInfo, error) 
 	}
 	for node := range doc.Descendants() {
 		if node.Type == html.ElementNode && node.DataAtom == atom.A {
-			shouldDownload := false
-
-			for nodeDec := range node.Descendants() {
-				if nodeDec.Type == html.TextNode && slices.Contains([]string{"Se jobbet"}, nodeDec.Data) {
-					shouldDownload = true
-					break
-				}
-			}
 			for _, a := range node.Attr {
 				if a.Key == "href" {
 					hrefVal, err := url.Parse(a.Val)
@@ -40,10 +31,10 @@ func getURLsFromHTML(htmlBody, rawBaseURL string) (map[string]CrawlInfo, error) 
 						continue
 					}
 					resolvedURL := baseURL.ResolveReference(hrefVal)
+
 					urls[resolvedURL.String()] = CrawlInfo{
-						Url:            resolvedURL,
-						Checked:        false,
-						ShouldDownload: shouldDownload,
+						Url:     resolvedURL,
+						Checked: false,
 					}
 				}
 			}
