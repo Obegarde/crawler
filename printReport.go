@@ -14,12 +14,12 @@ func printReport(pages map[string]CrawlInfo, baseURL string) {
 	checkedLinks := 0
 	for _, val := range pages {
 		uniqueLinks += 1
-		if val.Checked {
+		if val.ShouldDownload {
 			checkedLinks += 1
 		}
 	}
 	fmt.Println("=============================")
 	fmt.Printf("REPORT for %v\n", baseURL)
 	fmt.Println("=============================")
-	fmt.Printf("Found %v unique links of those %v have been checked\n", uniqueLinks, checkedLinks)
+	fmt.Printf("Found %v unique links of those %v should be downloaded\n", uniqueLinks, checkedLinks)
 }

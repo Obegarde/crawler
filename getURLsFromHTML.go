@@ -9,17 +9,16 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-func getURLsFromHTML(htmlBody, rawBaseURL string) (map[string]CrawlInfo, error) {
+func (cfg *config) getURLsFromHTML(htmlBody, rawBaseURL string) error {
 	baseURL, err := url.Parse(rawBaseURL)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't parse base URL:%v", err)
+		return fmt.Errorf("couldn't parse base URL:%v", err)
 	}
 
 	HTMLReader := strings.NewReader(htmlBody)
-	urls := make(map[string]CrawlInfo)
 	doc, err := html.Parse(HTMLReader)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	for node := range doc.Descendants() {
 		if node.Type == html.ElementNode && node.DataAtom == atom.A {
@@ -30,15 +29,28 @@ func getURLsFromHTML(htmlBody, rawBaseURL string) (map[string]CrawlInfo, error) 
 						fmt.Printf("couldn't parse href '%v': %v\n", a.Val, err)
 						continue
 					}
-					resolvedURL := baseURL.ResolveReference(hrefVal)
+					resolvedURLString := baseURL.ResolveReference(hrefVal).String()
+					if node.Parent.Data == "h4" {
+						newInfo := CrawlInfo{
+							URL:            resolvedURLString,
+							Checked:        false,
+							ShouldDownload: true,
+						}
+						cfg.addNewPage(resolvedURLString, newInfo)
+						cfg.crawlPage(newInfo)
+						cfg.setPageChecked(resolvedURLString)
 
-					urls[resolvedURL.String()] = CrawlInfo{
-						Url:     resolvedURL,
-						Checked: false,
+					} else {
+						newInfo := CrawlInfo{
+							URL:            resolvedURLString,
+							Checked:        false,
+							ShouldDownload: false,
+						}
+						cfg.addNewPage(resolvedURLString, newInfo)
 					}
 				}
 			}
 		}
 	}
-	return urls, nil
+	return nil
 }

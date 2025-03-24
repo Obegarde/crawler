@@ -29,14 +29,17 @@ func main() {
 			fmt.Printf("Failed to configure crawler:%v\n", err)
 			os.Exit(1)
 		}
+		defer cfg.WritePagesMapToFile("pagesMap")
+
 		normalizedBase, err := normalizeURL(cfg.baseURL.String())
 		if err != nil {
 			fmt.Printf("failed to format baseURL: %v", err)
 			return
 		}
 		baseURLStruct := CrawlInfo{
-			Url:     cfg.baseURL,
-			Checked: false,
+			URL:            normalizedBase,
+			Checked:        false,
+			ShouldDownload: false,
 		}
 		cfg.addNewPage(normalizedBase, baseURLStruct)
 		fmt.Println("starting crawl")
@@ -60,9 +63,5 @@ func main() {
 		fmt.Println("stopping Crawler")
 		cancel()
 		printReport(cfg.pages, cfg.baseURL.String())
-		err = cfg.WritePagesMapToFile("pagesMap")
-		if err != nil {
-			fmt.Printf("failed to write map %v\n", err)
-		}
 	}
 }

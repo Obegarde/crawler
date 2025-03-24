@@ -6,30 +6,28 @@ import (
 	"strings"
 )
 
-func (cfg *config) crawlPage(currentURL string) {
-	fmt.Println(currentURL)
-	pageHTML, err := getHTML(currentURL)
+func (cfg *config) crawlPage(currentInfo CrawlInfo) {
+	fmt.Println(currentInfo.URL)
+	pageHTML, err := getHTML(currentInfo.URL)
 	if err != nil {
 		fmt.Printf("Error getting page: %v\n", err)
 		return
 	}
-	// If its on a different site just download the page and set it checked. This allows me to download jobs posted on the companies site without crawling their page
-	if !strings.Contains(currentURL, cfg.baseURL.Host) {
-		cfg.WriteHTMLToFile(pageHTML, currentURL)
-	} else {
-		cfg.WriteHTMLToFile(pageHTML, currentURL)
-		newLinks, err := getURLsFromHTML(pageHTML, currentURL)
-		if err != nil {
-			fmt.Printf("Error extracting URLs: %v\n", err)
-			return
-		}
-		for urlString, linkInfo := range newLinks {
-			cfg.addNewPage(urlString, linkInfo)
-		}
+	if currentInfo.ShouldDownload && !currentInfo.Checked {
+		fmt.Println("Downloading page")
+		cfg.WriteHTMLToFile(pageHTML, currentInfo.URL)
+	}
+	if !strings.Contains(currentInfo.URL, cfg.baseURL.Host) {
+		return
+	}
+	err = cfg.getURLsFromHTML(pageHTML, currentInfo.URL)
+	if err != nil {
+		fmt.Printf("Error extracting URLs: %v\n", err)
+		return
 	}
 }
 
-func (cfg *config) workThroughLinks(links []string, ctx context.Context) int {
+func (cfg *config) workThroughLinks(links []CrawlInfo, ctx context.Context) int {
 	linksWorkedThrough := 0
 	for _, link := range links {
 		linksWorkedThrough += 1
@@ -47,21 +45,21 @@ func (cfg *config) workThroughLinks(links []string, ctx context.Context) int {
 				defer func() { <-cfg.concurrencyControl }()
 				cfg.concurrencyControl <- struct{}{}
 				cfg.crawlPage(link)
-				cfg.setPageChecked(link)
+				cfg.setPageChecked(link.URL)
 			}
 		}(ctx)
 	}
 	return linksWorkedThrough
 }
 
-func (cfg *config) generateLinkList() ([]string, error) {
-	links := []string{}
+func (cfg *config) generateLinkList() ([]CrawlInfo, error) {
+	links := []CrawlInfo{}
 	cfg.mu.Lock()
 	defer cfg.mu.Unlock()
 	// fmt.Println(cfg.pages)
-	for key, val := range cfg.pages {
+	for _, val := range cfg.pages {
 		if !val.Checked {
-			links = append(links, key)
+			links = append(links, val)
 		}
 	}
 	if len(links) == 0 {

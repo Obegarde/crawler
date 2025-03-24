@@ -18,10 +18,12 @@ func (cfg *config) WriteHTMLToFile(htmlString, normalizedURL string) error {
 		return fmt.Errorf("error on creation %v", err)
 	}
 	defer file.Close()
-	_, err = file.WriteString(normalizedURL + "\n" + htmlString)
+	wBytes, err := file.WriteString(normalizedURL + "\n" + htmlString)
 	if err != nil {
 		return fmt.Errorf("error on writingString: %v", err)
 	}
+	fmt.Println(normalizedURL)
+	fmt.Println(wBytes)
 	file.Sync()
 
 	return nil
